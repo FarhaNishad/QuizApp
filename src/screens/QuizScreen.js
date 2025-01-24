@@ -1,197 +1,109 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Dimensions, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Text } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import Animated, { FadeInDown, FadeOutUp, FadeIn, BounceIn } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const questions = [
   {
     id: 1,
     question: "What is the recommended daily water intake for adults?",
-    icon: "",
+    icon: "💧",
     options: [
       "2-3 liters",
       "1 liter",
       "5 liters",
       "0.5 liters"
     ],
-    correct: 0,
-    points: 10
+    correct: 0
   },
   {
     id: 2,
     question: "Which vitamin is produced when skin is exposed to sunlight?",
-    icon: "",
+    icon: "☀️",
     options: [
       "Vitamin A",
       "Vitamin C",
       "Vitamin D",
       "Vitamin E"
     ],
-    correct: 2,
-    points: 10
+    correct: 2
   },
   {
     id: 3,
     question: "How many hours of sleep are recommended for adults per night?",
-    icon: "",
+    icon: "😴",
     options: [
       "4-5 hours",
       "6-7 hours",
       "7-9 hours",
       "10-12 hours"
     ],
-    correct: 2,
-    points: 10
+    correct: 2
   }
 ];
 
 const QuizScreen = ({ navigation }) => {
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedOption, setSelectedOption] = useState(null);
-  const [score, setScore] = useState(0);
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(30);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [points, setPoints] = useState(231);
+  const [progress, setProgress] = useState(12);
 
-  useEffect(() => {
-    if (timeLeft > 0) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-      return () => clearTimeout(timer);
-    } else if (timeLeft === 0 && !showFeedback) {
-      handleAnswer(-1);
-    }
-  }, [timeLeft]);
-
-  const handleAnswer = (selectedIndex) => {
-    const currentQuestion = questions[currentQuestionIndex];
-    const isCorrect = selectedIndex === currentQuestion.correct;
-    
-    setSelectedOption(selectedIndex);
-    setShowFeedback(true);
+  const handleAnswer = async (selectedIndex) => {
+    const isCorrect = selectedIndex === questions[currentQuestion].correct;
+    const earnedPoints = isCorrect ? 80 : 0;
     
     if (isCorrect) {
-      setScore(score + currentQuestion.points);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } else {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setPoints(points + earnedPoints);
+      await AsyncStorage.setItem('points', String(points + earnedPoints));
     }
-
-    setTimeout(() => {
-      if (currentQuestionIndex < questions.length - 1) {
-        setCurrentQuestionIndex(currentQuestionIndex + 1);
-        setSelectedOption(null);
-        setShowFeedback(false);
-        setTimeLeft(30);
-      } else {
-        navigation.navigate('Result', {
-          score,
-          totalQuestions: questions.length,
-        });
-      }
-    }, 1500);
-  };
-
-  const currentQuestion = questions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
-
-  const getBackgroundColors = () => {
-    return ['#8B5CF6', '#7C3AED'];
+    
+    navigation.navigate('Result', { 
+      points: earnedPoints,
+      isCorrect,
+      currentQuestion: currentQuestion + 1,
+      totalQuestions: questions.length
+    });
   };
 
   return (
     <LinearGradient
-      colors={getBackgroundColors()}
+      colors={['#8B5CF6', '#7C3AED']}
       style={styles.container}
     >
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="close" size={24} color="white" />
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={styles.backButton}>←</Text>
         </TouchableOpacity>
-        
         <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <Animated.View 
-              style={[styles.progressFill, { width: `${progress}%` }]}
-            />
-          </View>
-          <Text style={styles.questionCounter}>
-            {currentQuestionIndex + 1}/{questions.length}
-          </Text>
+          <View style={[styles.progressBar, { width: `${(progress/15) * 100}%` }]} />
         </View>
-
-        <View style={styles.timerContainer}>
-          <Ionicons name="timer-outline" size={24} color="white" />
-          <Text style={styles.timerText}>{timeLeft}s</Text>
+        <View style={styles.pointsContainer}>
+          <Text style={styles.pointsText}>Points</Text>
+          <Text style={styles.pointsValue}>{points}</Text>
         </View>
       </View>
 
-      <ScrollView 
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        <Animated.View 
-          entering={FadeInDown.duration(500)}
-          exiting={FadeOutUp.duration(500)}
-          style={styles.questionContainer}
-        >
-          <Text style={styles.questionText}>
-            {currentQuestion.question}
-          </Text>
-
-          <View style={styles.optionsContainer}>
-            {currentQuestion.options.map((option, index) => (
-              <Animated.View
-                key={index}
-                entering={FadeIn.delay(index * 200)}
-              >
-                <TouchableOpacity
-                  style={[
-                    styles.optionButton,
-                    selectedOption === index && styles.selectedOption,
-                    showFeedback && index === currentQuestion.correct && styles.correctOption,
-                    showFeedback && selectedOption === index && 
-                    index !== currentQuestion.correct && styles.wrongOption,
-                  ]}
-                  onPress={() => !showFeedback && handleAnswer(index)}
-                  disabled={showFeedback}
-                >
-                  <Text style={[
-                    styles.optionText,
-                    (showFeedback && (index === currentQuestion.correct || 
-                    selectedOption === index)) && styles.selectedOptionText
-                  ]}>
-                    {option}
-                  </Text>
-                  {showFeedback && index === currentQuestion.correct && (
-                    <Animated.View entering={BounceIn}>
-                      <Ionicons name="checkmark-circle" size={24} color="white" />
-                    </Animated.View>
-                  )}
-                  {showFeedback && selectedOption === index && 
-                   index !== currentQuestion.correct && (
-                    <Animated.View entering={BounceIn}>
-                      <Ionicons name="close-circle" size={24} color="white" />
-                    </Animated.View>
-                  )}
-                </TouchableOpacity>
-              </Animated.View>
-            ))}
-          </View>
-        </Animated.View>
-      </ScrollView>
-
-      <View style={styles.footer}>
-        <View style={styles.scoreContainer}>
-          <Ionicons name="trophy-outline" size={24} color="white" />
-          <Text style={styles.scoreText}>Score: {score}</Text>
+      {/* Question Card */}
+      <View style={styles.questionCard}>
+        <Text style={styles.questionNumber}>Question {currentQuestion + 1}</Text>
+        <View style={styles.iconContainer}>
+          <Text style={styles.questionIcon}>{questions[currentQuestion].icon}</Text>
         </View>
+        <Text style={styles.questionText}>{questions[currentQuestion].question}</Text>
+        
+        {/* Options */}
+        {questions[currentQuestion].options.map((option, index) => (
+          <TouchableOpacity
+            key={index}
+            style={styles.optionButton}
+            onPress={() => handleAnswer(index)}
+          >
+            <Text style={styles.optionText}>{option}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
     </LinearGradient>
   );
@@ -200,125 +112,84 @@ const QuizScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 20,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
+    marginBottom: 40,
   },
   backButton: {
-    padding: 8,
+    fontSize: 24,
+    color: 'white',
+    fontWeight: 'bold',
   },
   progressContainer: {
     flex: 1,
-    marginHorizontal: 15,
+    height: 8,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 4,
+    marginHorizontal: 20,
   },
   progressBar: {
-    height: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressFill: {
     height: '100%',
-    backgroundColor: 'white',
+    backgroundColor: '#FFA07A',
     borderRadius: 4,
   },
-  questionCounter: {
+  pointsContainer: {
+    alignItems: 'flex-end',
+  },
+  pointsText: {
     color: 'white',
     fontSize: 12,
-    marginTop: 5,
-    textAlign: 'center',
   },
-  timerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  timerText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 5,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  questionContainer: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  questionText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1F2937',
-    marginBottom: 20,
-    lineHeight: 28,
-  },
-  optionsContainer: {
-    gap: 12,
-  },
-  optionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#F3F4F6',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-  },
-  selectedOption: {
-    backgroundColor: '#8B5CF6',
-    borderColor: '#7C3AED',
-  },
-  correctOption: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#45A049',
-  },
-  wrongOption: {
-    backgroundColor: '#F44336',
-    borderColor: '#E53935',
-  },
-  optionText: {
-    fontSize: 16,
-    color: '#4B5563',
-    flex: 1,
-  },
-  selectedOptionText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  footer: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-  scoreContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    padding: 12,
-    borderRadius: 15,
-  },
-  scoreText: {
+  pointsValue: {
     color: 'white',
     fontSize: 18,
     fontWeight: 'bold',
-    marginLeft: 8,
+  },
+  questionCard: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+  },
+  questionNumber: {
+    fontSize: 18,
+    color: '#666',
+    marginBottom: 20,
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    backgroundColor: '#FFA07A',
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  questionIcon: {
+    fontSize: 40,
+  },
+  questionText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#4A148C',
+    textAlign: 'center',
+    marginBottom: 30,
+  },
+  optionButton: {
+    width: width * 0.7,
+    backgroundColor: '#F5F5F5',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 15,
+  },
+  optionText: {
+    fontSize: 16,
+    color: '#4A148C',
+    textAlign: 'center',
   },
 });
 

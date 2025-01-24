@@ -1,73 +1,40 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Animated, Image } from 'react-native';
+import React from 'react';
+import { View, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import { Text } from 'react-native-paper';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Haptics from 'expo-haptics';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import LottieView from 'lottie-react-native';
+
+const { width, height } = Dimensions.get('window');
 
 const HomeScreen = ({ navigation }) => {
-  const fadeAnim = new Animated.Value(0);
-  const scaleAnim = new Animated.Value(0.9);
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 8,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
-  const handleStartPress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    navigation.navigate('Categories');
-  };
-
   return (
     <LinearGradient
-      colors={['#4c669f', '#3b5998', '#192f6a']}
+      colors={['#8B5CF6', '#7C3AED']}
       style={styles.container}
     >
-      <Animated.View
-        style={[
-          styles.content,
-          {
-            opacity: fadeAnim,
-            transform: [{ scale: scaleAnim }],
-          },
-        ]}
-      >
-        <View style={styles.header}>
-          <MaterialCommunityIcons name="brain" size={60} color="#FFD700" />
-          <Text style={styles.title}>QuizzyCure</Text>
-          <Text style={styles.subtitle}>Test Your Knowledge!</Text>
+      <View style={styles.questionMarksContainer}>
+        <Text style={[styles.questionMark, styles.questionMarkLeft]}>?</Text>
+        <Text style={[styles.questionMark, styles.questionMarkCenter]}>?</Text>
+        <Text style={[styles.questionMark, styles.questionMarkRight]}>?</Text>
+      </View>
+      
+      <View style={styles.card}>
+        <Text style={styles.title}>Interesting QUIZ{'\n'}Awaits You</Text>
+        <Text style={styles.subtitle}>
+          Test your knowledge in nutrition,{'\n'}physical health, mental health,{'\n'}and hygiene
+        </Text>
+        <View style={styles.dots}>
+          <View style={[styles.dot, styles.dotInactive]} />
+          <View style={[styles.dot, styles.dotActive]} />
+          <View style={[styles.dot, styles.dotInactive]} />
         </View>
+      </View>
 
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.startButton}
-            onPress={handleStartPress}
-            activeOpacity={0.7}
-          >
-            <LinearGradient
-              colors={['#FFD700', '#FFA500']}
-              style={styles.gradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <Text style={styles.buttonText}>Start Quiz</Text>
-              <MaterialCommunityIcons name="arrow-right" size={24} color="#fff" />
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
+      <TouchableOpacity
+        style={styles.startButton}
+        onPress={() => navigation.navigate('Categories')}
+      >
+        <Text style={styles.arrowIcon}>→</Text>
+      </TouchableOpacity>
     </LinearGradient>
   );
 };
@@ -75,43 +42,86 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
   },
-  content: {
-    width: '100%',
-    alignItems: 'center',
-    padding: 20,
+  questionMarksContainer: {
+    flexDirection: 'row',
+    marginBottom: 40,
   },
-  header: {
+  questionMark: {
+    fontSize: 60,
+    fontWeight: 'bold',
+    color: 'white',
+    opacity: 0.9,
+    textShadow: '2px 2px 4px rgba(0,0,0,0.2)',
+  },
+  questionMarkLeft: {
+    color: '#FFB6C1',
+    transform: [{rotate: '-15deg'}],
+  },
+  questionMarkCenter: {
+    color: '#FFA07A',
+    fontSize: 70,
+    marginHorizontal: 20,
+  },
+  questionMarkRight: {
+    color: '#E6E6FA',
+    transform: [{rotate: '15deg'}],
+  },
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 30,
+    width: width * 0.85,
     alignItems: 'center',
-    marginBottom: 50,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+    elevation: 8,
   },
   title: {
-    fontSize: 42,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
-    marginTop: 10,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 5,
+    color: '#4A148C',
+    textAlign: 'center',
+    marginBottom: 15,
   },
   subtitle: {
-    fontSize: 18,
-    color: '#FFD700',
-    marginTop: 10,
-    fontStyle: 'italic',
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
   },
-  buttonContainer: {
-    width: '100%',
-    alignItems: 'center',
+  dots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginHorizontal: 5,
+  },
+  dotActive: {
+    backgroundColor: '#FFA07A',
+  },
+  dotInactive: {
+    backgroundColor: '#E0E0E0',
   },
   startButton: {
-    width: '80%',
+    backgroundColor: '#FFA07A',
+    width: 60,
     height: 60,
     borderRadius: 30,
-    overflow: 'hidden',
-    elevation: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 30,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -119,19 +129,12 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    elevation: 5,
   },
-  gradient: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  buttonText: {
-    color: '#fff',
+  arrowIcon: {
+    color: 'white',
     fontSize: 24,
     fontWeight: 'bold',
-    marginRight: 10,
   },
 });
 
